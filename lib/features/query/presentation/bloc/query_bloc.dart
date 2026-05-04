@@ -38,6 +38,11 @@ class QueryBloc extends Bloc<QueryEvent, QueryState> {
         _currentUserId = event.userId;
       }
       emit(QueryState.created());
+      if (_currentUserId != null) {
+        add(QueryFetchUserRequested(userId: _currentUserId!));
+      } else {
+        add(QueryFetchAllRequested());
+      }
     } catch (e) {
       emit(QueryState.error(e.toString()));
     }
@@ -55,6 +60,11 @@ class QueryBloc extends Bloc<QueryEvent, QueryState> {
         description: event.description,
       );
       emit(QueryState.updated());
+      if (_currentUserId != null) {
+        add(QueryFetchUserRequested(userId: _currentUserId!));
+      } else {
+        add(QueryFetchAllRequested());
+      }
     } catch (e) {
       emit(QueryState.error(e.toString()));
     }
@@ -68,6 +78,11 @@ class QueryBloc extends Bloc<QueryEvent, QueryState> {
     try {
       await _queryRepository.deleteQuery(event.queryId);
       emit(QueryState.deleted());
+      if (_currentUserId != null) {
+        add(QueryFetchUserRequested(userId: _currentUserId!));
+      } else {
+        add(QueryFetchAllRequested());
+      }
     } catch (e) {
       emit(QueryState.error(e.toString()));
     }
