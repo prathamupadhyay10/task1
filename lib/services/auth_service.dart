@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/app_user.dart';
+import '../core/constants/app_constants.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -55,7 +56,7 @@ class AuthService {
         uid: credential.user!.uid,
         name: name.trim(),
         email: email.trim(),
-        role: email.trim().contains('admin') ? 'admin' : role,
+        role: email.trim().endsWith(AppConstants.adminEmailSuffix) ? 'admin' : role,
       );
 
       await _firestore.collection('users').doc(user.uid).set(user.toJson());

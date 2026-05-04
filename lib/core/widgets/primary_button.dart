@@ -20,76 +20,58 @@ class PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final button = Container(
-      height: 48,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            AppColors.surfaceLight.withOpacity(0.95),
-            AppColors.surface.withOpacity(0.95),
-          ],
-        ),
-        border: Border.all(
-          color: isLoading
-              ? AppColors.glassBorder.withOpacity(0.65)
-              : AppColors.glassBorder,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withOpacity(0.14),
-            blurRadius: 24,
-            spreadRadius: -10,
-            offset: const Offset(0, 14),
-          ),
-    ]
-      ),
-      );
-
     return SizedBox(
       width: width ?? double.infinity,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: isLoading ? null : onPressed,
-          borderRadius: BorderRadius.circular(24),
-          child: Ink(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                button,
-                if (isLoading)
-                  const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                else
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (icon != null) ...[
-                        Icon(icon, size: 18, color: Colors.white),
-                        const SizedBox(width: 8),
-                      ],
-                      Text(
-                        text,
-                        style: AppTextStyles.labelLarge.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                        ),
+      height: 52,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(26),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppColors.primary.withValues(alpha: 0.15),
+              AppColors.primary.withValues(alpha: 0.05),
+            ],
+          ),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.4),
+            width: 1,
+          ),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: isLoading ? null : onPressed,
+            borderRadius: BorderRadius.circular(26),
+            child: Center(
+              child: isLoading
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
-                    ],
-                  ),
-              ],
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (icon != null) ...[
+                          Icon(icon, size: 20, color: Colors.white),
+                          const SizedBox(width: 10),
+                        ],
+                        Text(
+                          text,
+                          style: AppTextStyles.labelLarge.copyWith(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
             ),
           ),
         ),

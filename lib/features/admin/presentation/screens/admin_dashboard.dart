@@ -9,6 +9,14 @@ import '../../../../models/query_model.dart';
 import '../../../query/presentation/bloc/query_bloc.dart';
 import '../../../query/presentation/bloc/query_event.dart';
 import '../../../query/presentation/bloc/query_state.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_event.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../../../../core/widgets/shimmer_gradient.dart';
+import '../../../../core/widgets/ai_loading_animation.dart';
+import '../../../../core/widgets/ai_error_animation.dart';
+import '../../../../core/widgets/empty_state.dart';
+import '../../../../core/widgets/primary_button.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -19,6 +27,9 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   Priority _selectedFilter = Priority.HIGH;
+  int _filterIndex = 0;
+
+  static const _priorities = [Priority.HIGH, Priority.MEDIUM, Priority.LOW];
 
   @override
   void initState() {
@@ -26,38 +37,59 @@ class _AdminDashboardState extends State<AdminDashboard> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<QueryBloc>().add(
-            QueryFilterByPriority(priority: _selectedFilter),
-          );
+        QueryFilterByPriority(priority: _selectedFilter),
+      );
       context.read<QueryBloc>().add(QueryFetchAllRequested());
     });
   }
 
   void _onFilterChanged(Priority value) {
     if (_selectedFilter == value) return;
+    final newIndex = _priorities.indexOf(value);
     setState(() {
+      _filterIndex = newIndex;
       _selectedFilter = value;
     });
-    context.read<QueryBloc>().add(
-          QueryFilterByPriority(priority: value),
-        );
+    context.read<QueryBloc>().add(QueryFilterByPriority(priority: value));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.transparent,
       body: AiSceneBackground(
         child: SafeArea(
           child: RepaintBoundary(
             child: Column(
               children: [
-                const SizedBox(height: 62),
-                Text(
-                  'AI-Based Priority Resolver',
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.headlineSmall.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      AiGhostIconButton(
+                        icon: Icons.logout_rounded,
+                        onTap: () {
+                          context.read<AuthBloc>().add(AuthLogoutRequested());
+                          Navigator.pushReplacementNamed(context, '/login');
+                        },
+                      ),
+                      Expanded(
+                        child: Text(
+                          'AI-Based Priority Resolver',
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.headlineSmall.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      AiGhostIconButton(
+                        icon: Icons.admin_panel_settings_rounded,
+                        onTap: () =>
+                            Navigator.pushNamed(context, '/admin-override'),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -71,7 +103,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     ],
                     selected: _selectedFilter,
                     labelBuilder: (value) =>
-                        value.name[0] + value.name.substring(1).toLowerCase(),
+                    value.name[0] + value.name.substring(1).toLowerCase(),
                     onChanged: _onFilterChanged,
                   ),
                 ),
@@ -79,31 +111,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 Expanded(
                   child: BlocBuilder<QueryBloc, QueryState>(
                     buildWhen: (previous, current) =>
-                        previous.status != current.status ||
+                    previous.status != current.status ||
                         previous.queries != current.queries ||
                         previous.errorMessage != current.errorMessage ||
                         previous.filterPriority != current.filterPriority,
                     builder: (context, state) {
-                      return AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 320),
-                        switchInCurve: Curves.easeOutCubic,
-                        switchOutCurve: Curves.easeInCubic,
-                        transitionBuilder: (child, animation) {
-                          final offset = Tween<Offset>(
-                            begin: const Offset(0, 0.04),
-                            end: Offset.zero,
-                          ).animate(animation);
-                          return FadeTransition(
-                            opacity: animation,
-                            child: SlideTransition(
-                              position: offset,
-                              child: child,
-                            ),
-                          );
-                        },
+                      return _SwipePageView(
+                        pageIndex: _filterIndex,
                         child: _AdminBody(
                           key: ValueKey<String>(
-                            '${state.status.name}-${state.queries.length}-${state.filterPriority?.name ?? 'none'}-${state.errorMessage ?? ''}',
+                            '${state.filterPriority?.name ?? 'none'}-${state.status.name}',
                           ),
                           state: state,
                         ),
@@ -120,13 +137,93 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 }
 
+class _SwipePageView extends StatefulWidget {
+  final int pageIndex;
+  final Widget child;
+  const _SwipePageView({required this.pageIndex, required this.child});
+
+  @override
+  State<_SwipePageView> createState() => _SwipePageViewState();
+}
+
+class _SwipePageViewState extends State<_SwipePageView>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _position;
+
+  Widget? _currentChild;
+  Widget? _previousChild;
+  bool _isForward = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentChild = widget.child;
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 320),
+    );
+    _position = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _SwipePageView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pageIndex != widget.pageIndex) {
+      _isForward = widget.pageIndex > oldWidget.pageIndex;
+      _previousChild = _currentChild;
+      _currentChild = widget.child;
+      _controller.forward(from: 0);
+    } else if (oldWidget.child.key != widget.child.key) {
+      _currentChild = widget.child;
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        final t = _position.value;
+        final inOffset = _isForward ? (1.0 - t) : -(1.0 - t);
+        final outOffset = _isForward ? -t : t;
+
+        return Stack(
+          children: [
+            if (_previousChild != null && t < 1.0)
+              FractionalTranslation(
+                translation: Offset(outOffset, 0),
+                child: Opacity(
+                  opacity: (1.0 - t).clamp(0.0, 1.0),
+                  child: _previousChild!,
+                ),
+              ),
+            FractionalTranslation(
+              translation: Offset(t < 1.0 ? inOffset : 0, 0),
+              child: Opacity(opacity: t.clamp(0.0, 1.0), child: _currentChild!),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _AdminBody extends StatelessWidget {
   final QueryState state;
 
-  const _AdminBody({
-    super.key,
-    required this.state,
-  });
+  const _AdminBody({super.key, required this.state});
 
   @override
   Widget build(BuildContext context) {
@@ -156,10 +253,10 @@ class _AdminLoadingState extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
-      itemCount: 3,
+      itemCount: 4,
       itemBuilder: (context, index) {
         return Padding(
-          padding: EdgeInsets.only(bottom: index == 2 ? 0 : 18),
+          padding: const EdgeInsets.only(bottom: 18),
           child: const _AdminLoadingCard(),
         );
       },
@@ -170,9 +267,7 @@ class _AdminLoadingState extends StatelessWidget {
 class _AdminLoadedState extends StatelessWidget {
   final List<QueryModel> queries;
 
-  const _AdminLoadedState({
-    required this.queries,
-  });
+  const _AdminLoadedState({required this.queries});
 
   @override
   Widget build(BuildContext context) {
@@ -180,23 +275,25 @@ class _AdminLoadedState extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
       itemCount: queries.length,
       itemBuilder: (context, index) {
-        return TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0, end: 1),
-          duration: Duration(milliseconds: 260 + (index * 120)),
-          curve: Curves.easeOutCubic,
-          builder: (context, value, child) {
-            return Opacity(
-              opacity: value,
-              child: Transform.translate(
-                offset: Offset(0, (1 - value) * 22),
-                child: child,
-              ),
-            );
-          },
-          child: Padding(
-            padding: EdgeInsets.only(bottom: index == queries.length - 1 ? 0 : 18),
-            child: _AdminQueryCard(query: queries[index]),
+        final bool isEven = index % 2 == 0;
+
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: index == queries.length - 1 ? 0 : 18,
           ),
+          child: _AdminQueryCard(query: queries[index]),
+        )
+            .animate()
+            .fadeIn(
+          duration: 600.ms,
+          curve: Curves.easeOut,
+        )
+            .slideX(
+          begin: isEven ? 1.0 : -1.0,
+          end: 0,
+          duration: 700.ms,
+          curve: Curves.easeOutCubic,
+          delay: (index * 100).ms,
         );
       },
     );
@@ -207,52 +304,20 @@ class _AdminErrorState extends StatelessWidget {
   final String message;
   final List<QueryModel> queries;
 
-  const _AdminErrorState({
-    required this.message,
-    required this.queries,
-  });
+  const _AdminErrorState({required this.message, required this.queries});
 
   @override
   Widget build(BuildContext context) {
-    final visibleQueries = queries.take(2).toList();
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
-      children: [
-        TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0, end: 1),
-          duration: const Duration(milliseconds: 320),
-          curve: Curves.easeOutBack,
-          builder: (context, value, child) {
-            return Opacity(
-              opacity: value,
-              child: Transform.scale(
-                scale: 0.96 + (value * 0.04),
-                child: child,
-              ),
-            );
-          },
-          child: _AdminErrorCard(message: message),
-        ),
-        for (int i = 0; i < visibleQueries.length; i++) ...[
-          const SizedBox(height: 18),
-          TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: 1),
-            duration: Duration(milliseconds: 300 + (i * 110)),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, child) {
-              return Opacity(
-                opacity: value,
-                child: Transform.translate(
-                  offset: Offset(0, (1 - value) * 18),
-                  child: child,
-                ),
-              );
-            },
-            child: _AdminQueryCard(query: visibleQueries[i]),
-          ),
-        ],
-      ],
+    return Center(
+      child: _AdminErrorCard(message: message)
+          .animate(onPlay: (controller) => controller.repeat(reverse: true))
+          .shake(
+        hz: 4,
+        duration: 1200.ms,
+        curve: Curves.easeInOut,
+        rotation: 0.02,
+      )
+          .fadeIn(duration: 500.ms),
     );
   }
 }
@@ -263,40 +328,37 @@ class _AdminLoadingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: AppColors.shimmerBase.withValues(alpha: 0.84),
-      highlightColor: AppColors.shimmerHighlight.withValues(alpha: 0.95),
-      period: const Duration(milliseconds: 1400),
+      baseColor: AppColors.shimmerBase.withValues(alpha: 0.3),
+      highlightColor: AppColors.shimmerHighlight.withValues(alpha: 0.1),
+      period: const Duration(milliseconds: 1500),
       child: _AdminCardFrame(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               width: double.infinity,
-              height: 20,
+              height: 22,
               decoration: BoxDecoration(
-                color: AppColors.surfaceLight,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
             const SizedBox(height: 16),
             Container(
-              width: 130,
+              width: 160,
               height: 18,
               decoration: BoxDecoration(
-                color: AppColors.surfaceLight,
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            const Spacer(),
-            Align(
-              alignment: Alignment.bottomLeft,
-              child: Container(
-                width: 84,
-                height: 18,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceLight,
-                  borderRadius: BorderRadius.circular(10),
-                ),
+            const SizedBox(height: 20),
+            Container(
+              width: 90,
+              height: 16,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
               ),
             ),
           ],
@@ -309,109 +371,45 @@ class _AdminLoadingCard extends StatelessWidget {
 class _AdminErrorCard extends StatelessWidget {
   final String message;
 
-  const _AdminErrorCard({
-    required this.message,
-  });
+  const _AdminErrorCard({required this.message});
 
   @override
   Widget build(BuildContext context) {
     return _AdminCardFrame(
-      accent: AppColors.primaryLight,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: double.infinity,
-                  height: 18,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(9),
+      accent: AppColors.error,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.error,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.error.withValues(alpha: 0.4),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
                   ),
-                ),
-                const SizedBox(height: 14),
-                Container(
-                  width: 122,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                const Spacer(),
-                Row(
-                  children: [
-                    Container(
-                      width: 18,
-                      height: 18,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.90),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 92,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.10),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Positioned.fill(
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 54,
-                      vertical: 13,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.error,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.error.withValues(alpha: 0.30),
-                          blurRadius: 24,
-                          spreadRadius: -10,
-                          offset: const Offset(0, 12),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      'ERROR',
-                      style: AppTextStyles.titleMedium.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  if (message.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    Text(
-                      message,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.labelSmall.copyWith(
-                        color: Colors.white.withValues(alpha: 0.0),
-                      ),
-                    ),
-                  ],
                 ],
               ),
+              child: Text(
+                'ERROR',
+                style: AppTextStyles.titleMedium.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodySmall.copyWith(color: Colors.white70),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -420,58 +418,54 @@ class _AdminErrorCard extends StatelessWidget {
 class _AdminQueryCard extends StatelessWidget {
   final QueryModel query;
 
-  const _AdminQueryCard({
-    required this.query,
-  });
+  const _AdminQueryCard({required this.query});
 
   @override
   Widget build(BuildContext context) {
     return _AdminCardFrame(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            query.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.headlineSmall.copyWith(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            query.description,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
-              height: 1.34,
-            ),
-          ),
-          const Spacer(),
-          Container(
-            height: 1,
-            color: AppColors.glassBorder.withValues(alpha: 0.28),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              const Icon(
-                Icons.calendar_today_rounded,
-                size: 18,
-                color: Colors.white,
+      child: IntrinsicHeight( // આ વિજેટ કન્ટેન્ટ મુજબ હાઈટ એડજસ્ટ કરશે
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              query.title,
+              style: AppTextStyles.headlineSmall.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
               ),
-              const SizedBox(width: 10),
-              Text(
-                _buildDateLabel(query),
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.textPrimary.withValues(alpha: 0.9),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              query.description,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+                height: 1.34,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              height: 1,
+              color: AppColors.glassBorder.withValues(alpha: 0.28),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(
+                  Icons.calendar_today_rounded,
+                  size: 18,
+                  color: Colors.white,
                 ),
-              ),
-            ],
-          ),
-        ],
+                const SizedBox(width: 10),
+                Text(
+                  _buildDateLabel(query),
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textPrimary.withValues(alpha: 0.9),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -492,31 +486,23 @@ class _AdminCardFrame extends StatelessWidget {
   final Widget child;
   final Color? accent;
 
-  const _AdminCardFrame({
-    required this.child,
-    this.accent,
-  });
+  const _AdminCardFrame({required this.child, this.accent});
 
   @override
   Widget build(BuildContext context) {
     final borderColor = accent ?? AppColors.primaryLight;
 
     return Container(
-      height: 162,
+      // અહીં ફિક્સ હાઈટ (162) દૂર કરી છે જેથી ડાયનામિક રહે
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            const Color(0xE6152D49),
-            const Color(0xE6081629),
-          ],
+          colors: [Color(0xE6152D49), Color(0xE6081629)],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: borderColor.withValues(alpha: 0.78),
-        ),
+        border: Border.all(color: borderColor.withValues(alpha: 0.78)),
         boxShadow: [
           BoxShadow(
             color: borderColor.withValues(alpha: 0.12),
@@ -526,32 +512,7 @@ class _AdminCardFrame extends StatelessWidget {
           ),
         ],
       ),
-      child: Stack(
-        children: [
-          Positioned(
-            left: -34,
-            right: -34,
-            bottom: -54,
-            child: IgnorePointer(
-              child: Container(
-                height: 124,
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    center: const Alignment(0, 0.9),
-                    radius: 0.92,
-                    colors: [
-                      AppColors.primaryLight.withValues(alpha: 0.30),
-                      AppColors.primary.withValues(alpha: 0.14),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Positioned.fill(child: child),
-        ],
-      ),
+      child: child,
     );
   }
 }

@@ -35,57 +35,48 @@ class _AdminOverridePanelState extends State<AdminOverridePanel> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF021224),
-              Color(0xFF00060F),
-            ],
-          ),
-        ),
-        child: Column(
-          children: [
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  children: [
-                    AiGhostIconButton(
-                      icon: Icons.arrow_back_ios_new_rounded,
-                      onTap: () => Navigator.pop(context),
-                    ),
-                    const Expanded(
-                      child: Text(
-                        'Manual Override',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+      body: AiSceneBackground(
+        child: BlocListener<QueryBloc, QueryState>(
+          listener: (context, state) {
+            if (state.status == QueryStatus.updating) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Priority updated'),
+                  backgroundColor: AppColors.success,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          },
+          child: Column(
+            children: [
+              SafeArea(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    children: [
+                      AiGhostIconButton(
+                        icon: Icons.arrow_back_ios_new_rounded,
+                        onTap: () => Navigator.pop(context),
+                      ),
+                      const Expanded(
+                        child: Text(
+                          'Manual Override',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 40), // Balance the back button
-                  ],
+                      const SizedBox(width: 40), // Balance the back button
+                    ],
+                  ),
                 ),
               ),
-            ),
-            BlocListener<QueryBloc, QueryState>(
-              listener: (context, state) {
-                if (state.status == QueryStatus.updating) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Priority updated'),
-                      backgroundColor: AppColors.success,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
-              },
-              child: Expanded(
+              Expanded(
                 child: Column(
                   children: [
                     Container(
@@ -130,14 +121,16 @@ class _AdminOverridePanelState extends State<AdminOverridePanel> {
                           if (state.status == QueryStatus.error &&
                               state.queries.isEmpty) {
                             return AiErrorAnimation(
-                              message: state.errorMessage ?? 'Failed to load queries',
+                              message:
+                                  state.errorMessage ?? 'Failed to load queries',
                             );
                           }
 
                           if (state.queries.isEmpty) {
                             return const EmptyState(
                               title: 'No Queries Found',
-                              subtitle: 'No queries available for manual override',
+                              subtitle:
+                                  'No queries available for manual override',
                               icon: Icons.edit_off_outlined,
                             );
                           }
@@ -151,9 +144,9 @@ class _AdminOverridePanelState extends State<AdminOverridePanel> {
                                 query: query,
                                 index: index,
                               ).animate().fadeIn(
-                                delay: (index * 60).ms,
-                                duration: 400.ms,
-                              ).slideX(begin: 0.1, end: 0);
+                                    delay: (index * 60).ms,
+                                    duration: 400.ms,
+                                  ).slideX(begin: 0.1, end: 0);
                             },
                           );
                         },
@@ -162,8 +155,8 @@ class _AdminOverridePanelState extends State<AdminOverridePanel> {
                   ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -272,8 +265,6 @@ class _OverrideCard extends StatelessWidget {
                     style: AppTextStyles.titleLarge.copyWith(
                       color: AppColors.textPrimary,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -375,21 +366,31 @@ class _PriorityButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.2) : color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
+          color: isSelected ? color.withOpacity(0.18) : Colors.white.withOpacity(0.04),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? color : color.withOpacity(0.3),
-            width: isSelected ? 2 : 1,
+            color: isSelected ? color.withOpacity(0.8) : Colors.white.withOpacity(0.15),
+            width: isSelected ? 1.5 : 1,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: color.withOpacity(0.25),
+                    blurRadius: 12,
+                    spreadRadius: -1,
+                  ),
+                ]
+              : null,
         ),
         child: Text(
-          priority.value,
-          style: AppTextStyles.labelSmall.copyWith(
-            color: isSelected ? color : color.withOpacity(0.7),
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+          priority.value[0] + priority.value.substring(1).toLowerCase(),
+          style: AppTextStyles.labelMedium.copyWith(
+            color: isSelected ? color : AppColors.textSecondary.withOpacity(0.7),
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            letterSpacing: 0.2,
           ),
         ),
       ),

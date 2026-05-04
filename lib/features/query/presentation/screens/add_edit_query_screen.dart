@@ -86,17 +86,7 @@ class _AddEditQueryScreenState extends State<AddEditQueryScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF021224),
-              Color(0xFF00060F),
-            ],
-          ),
-        ),
+      body: AiSceneBackground(
         child: BlocListener<QueryBloc, QueryState>(
           listener: (context, state) {
             if (state.status == QueryStatus.success) {
@@ -155,7 +145,7 @@ class _AddEditQueryScreenState extends State<AddEditQueryScreen> {
                             ).animate().fadeIn(
                                   duration: const Duration(milliseconds: 450),
                                 ),
-                            const SizedBox(height: 82),
+                            const SizedBox(height: 42),
                             JitterField(
                               key: _jitterKey,
                               child: Container(
@@ -163,10 +153,6 @@ class _AddEditQueryScreenState extends State<AddEditQueryScreen> {
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF0A223C).withOpacity(0.4),
                                   borderRadius: BorderRadius.circular(32),
-                                  border: Border.all(
-                                    color: const Color(0xFF56B8FF).withOpacity(0.4),
-                                    width: 1.5,
-                                  ),
                                   boxShadow: [
                                     BoxShadow(
                                       color: Colors.black.withOpacity(0.3),
@@ -269,21 +255,24 @@ class _AddEditQueryScreenState extends State<AddEditQueryScreen> {
                                   final isLoading =
                                       state.status == QueryStatus.creating ||
                                           state.status == QueryStatus.updating;
-                                  return PrimaryButton(
-                                    text: widget.isEditing
-                                        ? 'Update query'
-                                        : 'Add query',
-                                    width: 210,
-                                    onPressed: _submit,
-                                    isLoading: isLoading,
-                                  ).animate().fadeIn(
-                                        delay: const Duration(milliseconds: 220),
-                                        duration: const Duration(milliseconds: 420),
-                                      );
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                                      child: PrimaryButton(
+                                        text: widget.isEditing
+                                            ? 'Update query'
+                                            : 'Add query',
+                                        onPressed: _submit,
+                                        isLoading: isLoading,
+                                      ),
+                                    ).animate().fadeIn(
+                                          delay: const Duration(milliseconds: 220),
+                                          duration: const Duration(milliseconds: 420),
+                                        );
                                 },
                               ),
                             ),
-                            const SizedBox(height: 240),
+                            const SizedBox(height: 48),
+                            const SizedBox(height: 32),
                           ],
                         ),
                       ),

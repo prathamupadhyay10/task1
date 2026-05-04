@@ -32,39 +32,31 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _navigate();
+    _startAuthCheck();
   }
 
-  Future<void> _navigate() async {
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (!mounted) return;
-
-    final authBloc = BlocProvider.of<AuthBloc>(context);
-    authBloc.add(AuthCheckRequested());
-
-    late final StreamSubscription<AuthState> stream;
-    stream = authBloc.stream.listen((state) {
+  void _startAuthCheck() {
+    Future.delayed(const Duration(seconds: 2), () {
       if (!mounted) return;
-
-      if (state.status == AuthStatus.authenticated) {
-        if (state.isAdmin) {
-          Navigator.pushReplacementNamed(context, AppRouter.adminDashboard);
-        } else {
-          Navigator.pushReplacementNamed(context, AppRouter.userDashboard);
-        }
-        stream.cancel();
-      } else if (state.status == AuthStatus.unauthenticated ||
-          state.status == AuthStatus.error) {
-        Navigator.pushReplacementNamed(context, AppRouter.login);
-        stream.cancel();
-      }
+      context.read<AuthBloc>().add(AuthCheckRequested());
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state.status == AuthStatus.authenticated) {
+          Navigator.pushReplacementNamed(
+            context,
+            state.isAdmin ? AppRouter.adminDashboard : AppRouter.userDashboard,
+          );
+        } else if (state.status == AuthStatus.unauthenticated ||
+            state.status == AuthStatus.error) {
+          Navigator.pushReplacementNamed(context, AppRouter.login);
+        }
+      },
+      child: Scaffold(
       backgroundColor: AppColors.background,
       body: AiSceneBackground(
         child: Center(
@@ -105,6 +97,7 @@ class _SplashScreenState extends State<SplashScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

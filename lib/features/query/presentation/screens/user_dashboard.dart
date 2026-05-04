@@ -91,7 +91,7 @@ class _UserDashboardState extends State<UserDashboard> {
     final user = authState.user;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.transparent,
       body: AiSceneBackground(
         child: SafeArea(
           child: Column(

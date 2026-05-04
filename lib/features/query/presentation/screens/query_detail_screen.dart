@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/ai_scene.dart';
 import '../../../../core/widgets/priority_chip.dart';
 import '../../../../models/query_model.dart';
 import '../bloc/query_bloc.dart';
@@ -104,8 +105,10 @@ class _QueryDetailScreenState extends State<QueryDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         title: Text(
           'Query Details',
           style: AppTextStyles.headlineMedium.copyWith(
@@ -129,7 +132,8 @@ class _QueryDetailScreenState extends State<QueryDetailScreen> {
           ),
         ],
       ),
-      body: BlocListener<QueryBloc, QueryState>(
+      body: AiSceneBackground(
+        child: BlocListener<QueryBloc, QueryState>(
         listener: (context, state) {
           if (state.status == QueryStatus.success &&
               state.queries.isEmpty) {
@@ -299,6 +303,7 @@ class _QueryDetailScreenState extends State<QueryDetailScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

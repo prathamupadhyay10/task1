@@ -30,11 +30,10 @@ class FirestoreService {
     return _firestore
         .collection('queries')
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
+        .map((snapshot) => _sortByNewest(snapshot.docs
             .map((doc) => QueryModel.fromJson(doc.data(), doc.id))
-            .toList());
+            .toList()));
   }
 
   Stream<List<QueryModel>> getAllQueriesStream() {
@@ -51,11 +50,10 @@ class FirestoreService {
     return _firestore
         .collection('queries')
         .where('priority', isEqualTo: priority.value)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
+        .map((snapshot) => _sortByNewest(snapshot.docs
             .map((doc) => QueryModel.fromJson(doc.data(), doc.id))
-            .toList());
+            .toList()));
   }
 
   Future<void> overridePriority(
@@ -67,5 +65,10 @@ class FirestoreService {
       'mode': QueryMode.MANUAL.value,
       'updatedAt': Timestamp.fromDate(DateTime.now()),
     });
+  }
+
+  List<QueryModel> _sortByNewest(List<QueryModel> queries) {
+    queries.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return queries;
   }
 }

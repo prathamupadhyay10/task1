@@ -15,55 +15,26 @@ class AiSceneBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF021224),
+        image: const DecorationImage(
+          image: AssetImage('assets/bg.png'),
+          fit: BoxFit.cover,
+          opacity: 0.1,
+        ),
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Color(0xFF021224),
-            Color(0xFF010A15),
-            Color(0xFF00060F),
+            const Color(0xFF021224).withValues(alpha: 0.8),
+            const Color(0xFF010A15).withValues(alpha: 0.9),
+            const Color(0xFF00060F),
           ],
         ),
       ),
       child: Stack(
         children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: const Alignment(0, -0.35),
-                  radius: 0.75,
-                  colors: [
-                    AppColors.primary.withValues(alpha: 0.20),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            left: -80,
-            right: -80,
-            bottom: 46,
-            child: IgnorePointer(
-              child: Container(
-                height: 240,
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    center: const Alignment(0, 0.9),
-                    radius: 0.58,
-                    colors: [
-                      AppColors.primaryLight.withValues(alpha: 0.46),
-                      AppColors.primary.withValues(alpha: 0.18),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
           if (showGrid)
             Positioned.fill(
               child: IgnorePointer(
@@ -202,78 +173,74 @@ class AiSegmentedControl<T> extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final selectedIndex = values.indexOf(selected);
-        final innerWidth = constraints.maxWidth - 8;
+        final innerWidth = constraints.maxWidth - 12;
         final segmentWidth = innerWidth / values.length;
 
         return Container(
-          height: 38,
-          padding: const EdgeInsets.all(4),
+          height: 52,
+          padding: const EdgeInsets.all(6),
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: AppColors.surface.withValues(alpha: 0.55),
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: AppColors.glassBorder),
+            color: const Color(0x220A1A2D),
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(
+              color: const Color(0x3356B8FF),
+              width: 0.8,
+            ),
           ),
-          child: SizedBox(
-            width: innerWidth,
-            child: Stack(
-              children: [
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 280),
-                  curve: Curves.easeOutCubic,
-                  left: selectedIndex * segmentWidth,
-                  top: 0,
-                  child: Container(
-                    width: segmentWidth,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          AppColors.primary.withValues(alpha: 0.28),
-                          AppColors.surfaceLight.withValues(alpha: 0.92),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.60),
-                      ),
+          child: Stack(
+            children: [
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 320),
+                curve: Curves.easeOutQuart,
+                left: selectedIndex * segmentWidth,
+                top: 0,
+                bottom: 0,
+                child: Container(
+                  width: segmentWidth,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        const Color(0xFF1B3C5A).withValues(alpha: 0.7),
+                        const Color(0xFF0F2540).withValues(alpha: 0.9),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0x9956B8FF),
+                      width: 1.2,
                     ),
                   ),
                 ),
-                Row(
-                  children: values.map((value) {
-                    final isSelected = value == selected;
+              ),
+              Row(
+                children: values.map((value) {
+                  final isSelected = value == selected;
 
-                    return Expanded(
-                      child: GestureDetector(
-                        onTap: () => onChanged(value),
-                        behavior: HitTestBehavior.opaque,
-                        child: Center(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 6),
-                            child: Text(
-                              labelBuilder(value),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.labelMedium.copyWith(
-                                color: isSelected
-                                    ? AppColors.textPrimary
-                                    : AppColors.textSecondary,
-                                fontWeight: isSelected
-                                    ? FontWeight.w600
-                                    : FontWeight.w400,
-                              ),
-                            ),
+                  return Expanded(
+                    child: GestureDetector(
+                      onTap: () => onChanged(value),
+                      behavior: HitTestBehavior.opaque,
+                      child: Center(
+                        child: Text(
+                          labelBuilder(value),
+                          style: AppTextStyles.labelLarge.copyWith(
+                            color: isSelected
+                                ? Colors.white
+                                : const Color(0xFF8EA8C5).withValues(alpha: 0.6),
+                            fontSize: 15,
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
           ),
         );
       },
@@ -287,8 +254,8 @@ class _PerspectiveGridPainter extends CustomPainter {
     final horizonY = size.height * 0.72;
     final centerX = size.width / 2;
     final gridPaint = Paint()
-      ..color = AppColors.primary.withValues(alpha: 0.12)
-      ..strokeWidth = 1;
+      ..color = Colors.white.withValues(alpha: 0.04)
+      ..strokeWidth = 0.5;
 
     double y = horizonY;
     double step = 12;
